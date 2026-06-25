@@ -1,1 +1,137 @@
-<!DOCTYPE html><html><head><title>AI Spec Detector</title></head><body><h1>Local AI Hardware Detector</h1><p>Open in browser to detect GPU and get model recommendations.</p></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local AI Spec Detector • 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', system_ui, sans-serif; }
+        .glass { 
+            background: rgba(255,255,255,0.06); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255,255,255,0.1); 
+        }
+        .model-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .model-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-[#0A0A0F] text-white">
+    <div class="max-w-5xl mx-auto px-6 py-12">
+        <div class="flex items-center justify-between mb-10">
+            <div>
+                <h1 class="text-4xl font-semibold tracking-tight">Local AI Spec Detector</h1>
+                <p class="text-white/60">2026 Edition • Hardware-Aware Recommendations</p>
+            </div>
+        </div>
+
+        <div class="glass rounded-3xl p-8 mb-10 border border-white/10">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold">Your Hardware</h2>
+                <button onclick="detectHardware()" class="px-6 py-3 bg-white text-[#0A0A0F] font-semibold rounded-2xl hover:bg-white/90 transition-colors">Detect Hardware</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white/5 rounded-2xl p-5">
+                    <div class="text-xs text-white/50 mb-1">GPU</div>
+                    <div id="gpu-name" class="font-medium text-lg">Not detected yet</div>
+                </div>
+                <div class="bg-white/5 rounded-2xl p-5">
+                    <div class="text-xs text-white/50 mb-1">Estimated VRAM</div>
+                    <div id="vram" class="font-medium text-lg">—</div>
+                </div>
+                <div class="bg-white/5 rounded-2xl p-5">
+                    <div class="text-xs text-white/50 mb-1">System RAM</div>
+                    <div id="ram" class="font-medium text-lg">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-2xl font-semibold mb-6">Recommended Models</h2>
+            <div id="recommendations" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+    </div>
+
+    <script>
+        function detectHardware() {
+            const gpuEl = document.getElementById('gpu-name');
+            const vramEl = document.getElementById('vram');
+            const ramEl = document.getElementById('ram');
+            const recContainer = document.getElementById('recommendations');
+
+            gpuEl.textContent = 'Detecting...';
+
+            if ('gpu' in navigator) {
+                navigator.gpu.requestAdapter().then(adapter => {
+                    if (adapter) {
+                        const name = adapter.name || 'Unknown WebGPU GPU';
+                        gpuEl.textContent = name;
+
+                        let estimatedVRAM = '6+ GB';
+                        const lowerName = name.toLowerCase();
+
+                        if (lowerName.includes('4090') || lowerName.includes('3090')) estimatedVRAM = '24 GB';
+                        else if (lowerName.includes('4080') || lowerName.includes('3080')) estimatedVRAM = '12 GB';
+                        else if (lowerName.includes('4070') || lowerName.includes('3070')) estimatedVRAM = '8 GB';
+                        else if (lowerName.includes('4060') || lowerName.includes('3060')) estimatedVRAM = '6-8 GB';
+
+                        vramEl.textContent = estimatedVRAM;
+                        ramEl.textContent = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'Unknown';
+
+                        showRecommendations(estimatedVRAM, recContainer);
+                    }
+                }).catch(() => {
+                    gpuEl.textContent = 'WebGPU detection failed';
+                });
+            } else {
+                gpuEl.textContent = 'No WebGPU support';
+                vramEl.textContent = 'Assume 6-8 GB';
+                ramEl.textContent = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'Unknown';
+                showRecommendations('6-8 GB', recContainer);
+            }
+        }
+
+        function showRecommendations(vramStr, container) {
+            container.innerHTML = '';
+            const vramNum = parseInt(vramStr) || 6;
+
+            const models = [
+                { name: "Llama 3.1 8B", vram: 8, quality: "Excellent", use: "Chatbots, General Agents, Coding" },
+                { name: "Phi-3.5 3.8B", vram: 4, quality: "Very Good", use: "Lightweight agents" },
+                { name: "Qwen2.5 7B", vram: 6, quality: "Excellent", use: "Coding + General" },
+                { name: "Gemma 2 9B", vram: 8, quality: "Excellent", use: "Reasoning, Long context" },
+                { name: "DeepSeek-Coder-V2", vram: 12, quality: "Best", use: "Advanced Coding Agents" }
+            ];
+
+            models.forEach(model => {
+                const isGood = model.vram <= vramNum + 2;
+                const card = document.createElement('div');
+                card.className = `model-card glass rounded-3xl p-5 border ${isGood ? 'border-emerald-500/30' : 'border-white/10'}`;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="font-semibold text-lg">${model.name}</div>
+                            <div class="text-xs text-white/50">${model.vram} GB VRAM recommended</div>
+                        </div>
+                        ${isGood ? 
+                            `<div class="px-3 py-1 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">Recommended</div>` : 
+                            `<div class="px-3 py-1 text-xs bg-white/10 text-white/50 rounded-full">May struggle</div>`
+                        }
+                    </div>
+                    <div class="text-sm text-white/70 mb-2">${model.use}</div>
+                    <div class="text-xs"><span class="text-white/50">Quality:</span> <span class="font-medium">${model.quality}</span></div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.onload = () => {
+            setTimeout(() => {
+                if ('gpu' in navigator) detectHardware();
+            }, 600);
+        };
+    </script>
+</body>
+</html>
