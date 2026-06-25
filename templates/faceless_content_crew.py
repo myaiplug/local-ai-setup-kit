@@ -1,0 +1,1 @@
+# Faceless Content Crew (with heavy comments for beginners)

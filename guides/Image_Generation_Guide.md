@@ -1,0 +1,1 @@
+# Full beginner guide for local image generation
